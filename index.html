@@ -1,0 +1,1397 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Birthday Memories</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Quicksand:wght@300;400;600&display=swap" rel="stylesheet">
+    
+    <style>
+        /* =========================================
+           GLOBAL & TRANSISI SCENE
+           ========================================= */
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body, html {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        }
+
+        .scene {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 2s ease-in-out; 
+            z-index: 1;
+        }
+
+        .scene.active {
+            opacity: 1;
+            pointer-events: auto;
+            z-index: 10;
+        }
+
+        /* =========================================
+           SCENE 1: FINGERPRINT UNLOCK
+           ========================================= */
+        #scene1 {
+            background-color: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .game-container {
+            position: relative;
+            height: 100%;
+            width: 100%;
+            transition: opacity 1.5s ease-out;
+            z-index: 2;
+        }
+
+        .ambient-glow {
+            position: absolute;
+            bottom: 12%;
+            left: 50%;
+            transform: translate(-50%, 50%);
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle, rgba(138,43,226,0.15) 0%, rgba(255,0,127,0.05) 50%, transparent 70%);
+            border-radius: 50%;
+            animation: pulse-glow 4s ease-in-out infinite alternate;
+            z-index: 0;
+        }
+
+        .screen-flash {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #fff;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 10;
+            transition: opacity 0.8s ease-out;
+        }
+
+        .instruction-text {
+            position: absolute;
+            bottom: 28%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            font-size: 1.1rem;
+            letter-spacing: 2px;
+            text-align: center;
+            color: rgba(255,255,255,0.8);
+            text-shadow: 0 0 10px rgba(255,0,127,0.3);
+            transition: 0.5s;
+        }
+
+        .interaction-area {
+            position: absolute;
+            bottom: 12%;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 140px;
+            height: 140px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .progress-svg {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .progress-bg {
+            fill: none;
+            stroke: rgba(255,255,255,0.05);
+            stroke-width: 4;
+        }
+
+        .progress-bar {
+            fill: none;
+            stroke: url(#gradient);
+            stroke-width: 6;
+            stroke-linecap: round;
+            filter: drop-shadow(0 0 8px rgba(255,0,127,0.6));
+        }
+
+        .fingerprint-btn {
+            width: 70px;
+            height: 70px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .fingerprint-icon {
+            width: 100%;
+            height: 100%;
+            fill: rgba(255,0,127,0.4);
+            transition: 0.3s;
+            animation: idle-pulse 3s infinite alternate;
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: -10%;
+            width: 120%;
+            height: 3px;
+            background: #fff;
+            opacity: 0;
+        }
+
+        .fingerprint-btn.active .fingerprint-icon {
+            fill: #ff007f;
+            transform: scale(1.05);
+            filter: drop-shadow(0 0 15px rgba(255,0,127,0.8));
+        }
+
+        .fingerprint-btn.active .scan-line {
+            opacity: 1;
+            animation: scan-animation 1.2s infinite alternate;
+        }
+
+        .shake { animation: fail-shake 0.4s; }
+
+        @keyframes idle-pulse { 0% { opacity: 0.6; } 100% { opacity: 1; } }
+        @keyframes scan-animation { 0% { top: -5%; } 100% { top: 105%; } }
+        @keyframes pulse-glow { 0% { transform: translate(-50%, 50%) scale(0.9); } 100% { transform: translate(-50%, 50%) scale(1.1); } }
+        @keyframes fail-shake { 0% { transform: translateX(0); } 25% { transform: translateX(-3px); } 50% { transform: translateX(3px); } 75% { transform: translateX(-3px); } 100% { transform: translateX(0); } }
+
+        /* =========================================
+           SCENE 2: COUNTDOWN & FIREWORKS
+           ========================================= */
+        #scene2 {
+            background: radial-gradient(circle at top, #2a001f 0%, #12000d 45%, #050008 100%);
+            font-family: 'Courier New', Courier, monospace;
+        }
+        #scene2 canvas { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+        #s2-fireworks { z-index: 1; }
+        #s2-text { z-index: 2; }
+
+        /* =========================================
+           SCENE 3: CAKE ANIMATION
+           ========================================= */
+        :root {
+            --bg: #03071a; --gold-l: #f0cc88; --gold: #d4af6a;
+            --text-d: rgba(240,232,216,0.42); --glow-g: rgba(212,175,106,0.35);
+            --cake-top: #f9ebb8; --cake-mid: #d4a040; --cake-bot: #b87a28;
+        }
+        
+        #scene3 {
+            background: var(--bg);
+            font-family: 'Georgia', serif;
+            display: flex;
+            flex-direction: column;
+        }
+        #scene3::before {
+            content: ""; position: absolute; width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(212,175,106,0.15), transparent 70%);
+            top: 50%; left: 50%; transform: translate(-50%, -50%);
+            animation: bgMove 8s ease-in-out infinite alternate; z-index: 0;
+        }
+        @keyframes bgMove { 0% { transform: translate(-50%, -50%) scale(1); } 100% { transform: translate(-50%, -50%) scale(1.2); } }
+
+        #s3-top-area { text-align: center; padding-top: 40px; min-height: 120px; z-index: 5; }
+        #s3-bday-text { opacity: 0; transition: opacity 0.5s; }
+        .bday-name, .bday-age { font-size: clamp(28px,8.5vw,50px); font-style: italic; color: var(--gold-l); text-shadow: 0 0 40px var(--glow-g); margin: 5px 0; }
+
+        #s3-cake-area { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; z-index: 5;}
+        #cake-stage { position: relative; width: 260px; height: 275px; transform-origin: bottom center; z-index: 2; transform: scale(1.1); animation: floatCake 4s ease-in-out infinite alternate; }
+        .cp { position: absolute; left: 50%; transform: translateX(-50%); opacity: 0; }
+        @keyframes floatCake { 0%, 100% { transform: scale(1.1) translateY(0); } 50% { transform: scale(1.1) translateY(-8px); } }
+        .pulse { animation: pulseCake 1.2s ease-in-out infinite; }
+        @keyframes pulseCake { 0%,100% { transform: scale(1.05); } 50% { transform: scale(1.12); } }
+
+        /* Cake Parts */
+        #plate { width: 240px; height: 20px; bottom: 0; background: linear-gradient(180deg, #c8a458, #784f15); border-radius: 50%; box-shadow: 0 8px 28px rgba(0,0,0,0.75); }
+        .cake-layer { border-radius: 11px 11px 6px 6px; background: linear-gradient(180deg, var(--cake-top) 0%, var(--cake-mid) 62%, var(--cake-bot) 100%); box-shadow: inset 0 2px 3px rgba(255,242,180,0.4); }
+        #layer-1 { width: 200px; height: 58px; bottom: 17px; }
+        #layer-2 { width: 172px; height: 50px; bottom: 83px; }
+        #layer-3 { width: 145px; height: 42px; bottom: 141px; }
+        .cream-layer { height: 14px; background: linear-gradient(180deg, #fff6ee, #ffe0c4); border-radius: 50% 50% 50% 50% / 100% 100% 0 0; }
+        #cream-1 { width: 213px; bottom: 72px; }
+        #cream-2 { width: 183px; bottom: 130px; }
+        #frosting-wrap { width: 168px; bottom: 180px; }
+        #frosting-surface { width: 100%; height: 14px; background: linear-gradient(180deg, #ffc4d6, #ff80a8); border-radius: 45% 45% 0 0; }
+        #drips-row { position: absolute; top: 9px; left: 0; right: 0; display: flex; justify-content: space-around; padding: 0 12px; }
+        .drip { border-radius: 0 0 50% 50%; background: linear-gradient(180deg, #ff80a8, #ff4888); height: 0; }
+        .drip.go { animation: dripfall 0.5s ease-out forwards; }
+        #candles-row { bottom: 183px; display: flex; gap: 12px; align-items: flex-end; }
+        .cw { position: relative; display: flex; flex-direction: column; align-items: center; cursor: pointer; width: 13px; }
+        .candle { width: 13px; height: 44px; border-radius: 5px 5px 2px 2px; transform: scaleY(0); transform-origin: bottom center; transition: transform 0.5s; background: linear-gradient(180deg,#ffb4d0,#e06090); }
+        .candle.up { transform: scaleY(1); }
+        .candle-wick { width: 2px; height: 7px; background: #3a1e08; position: absolute; top: -7px; left: 50%; transform: translateX(-50%); }
+        .flame { width: 11px; height: 20px; background: radial-gradient(ellipse, #fffae0, #ff8c00 48%, transparent); border-radius: 50% 50% 50% 50% / 35% 35% 65% 65%; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); opacity: 0; transition: opacity 0.3s; box-shadow: 0 0 12px #ff8800;}
+        .flame.lit { opacity: 1; animation: flicker 0.3s ease-in-out infinite alternate; }
+        .flame.out { opacity: 0 !important; animation: none !important; }
+
+        #s3-bottom-area { text-align: center; padding-bottom: 30px; z-index: 5;}
+        #slabel { font-size: 14px; color: var(--gold-l); letter-spacing: 2px; text-transform: uppercase; transition: opacity 0.3s; }
+        .hint { font-size: 12px; color: var(--text-d); letter-spacing: 1px; animation: pulseHint 2s infinite; }
+        .hidden { display: none !important; }
+
+        @keyframes dropDown { 0% { opacity:0; transform:translateX(-50%) translateY(-50px); } 100% { opacity:1; transform:translateX(-50%) translateY(0); } }
+        @keyframes spreadX { 0% { opacity:0; transform:translateX(-50%) scaleX(0); } 100% { opacity:1; transform:translateX(-50%) scaleX(1); } }
+        @keyframes frostIn { 0% { opacity:0; transform:translateX(-50%) translateY(-10px); } 100% { opacity:1; transform:translateX(-50%) translateY(0); } }
+        @keyframes dripfall { to { height: var(--dh, 20px); } }
+        @keyframes flicker { 0% { transform: translateX(-50%) scale(1); } 100% { transform: translateX(-50%) scale(1.1); } }
+        @keyframes pulseHint { 0%,100% { opacity: 0.3; } 50% { opacity: 1; } }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+        #bg-particles { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 0; pointer-events: none; }
+
+
+        /* =========================================
+   SCENE 4: KALIMAT / DOA
+   ========================================= */
+#scene4 {
+    background: radial-gradient(circle at center, #12000d 0%, #050008 100%);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
+    font-family: 'Playfair Display', serif;
+}
+
+.s4-doa-container {
+    width: 90%;
+    max-width: 700px;
+    text-align: center;
+    color: white;
+    padding: 20px;
+    z-index: 2;
+}
+
+.s4-title {
+    font-size: clamp(24px, 6vw, 40px);
+    color: #ffb3d9;
+    margin-bottom: 30px;
+    text-shadow: 0 0 20px rgba(255,0,127,0.5);
+    animation: fadeUp 1.5s ease forwards;
+}
+
+.s4-text {
+    font-size: clamp(15px, 4vw, 20px);
+    line-height: 2;
+    color: rgba(255,255,255,0.85);
+    opacity: 0;
+    animation: fadeText 2s ease forwards;
+    animation-delay: 1s;
+}
+
+.s4-glow {
+    position: absolute;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(255,0,127,0.18), transparent 70%);
+    border-radius: 50%;
+    animation: pulse-glow 5s ease-in-out infinite alternate;
+}
+
+@keyframes fadeText {
+    from {
+        opacity: 0;
+        transform: translateY(25px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+        /* =========================================
+           SCENE PRAYER: CINEMATIC MESSAGES
+           ========================================= */
+        #scenePrayer {
+            background: radial-gradient(circle at center, #1a0a14 0%, #050505 80%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Playfair Display', serif;
+            text-align: center;
+            overflow: hidden;
+        }
+
+        #prayer-particles {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+        }
+
+        .prayer-content {
+            position: relative;
+            z-index: 1;
+            padding: 0 25px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        #prayer-text {
+            font-size: clamp(22px, 6vw, 32px);
+            color: #f0cc88;
+            text-shadow: 0 0 15px rgba(212, 175, 106, 0.4);
+            opacity: 0;
+            transform: translateY(15px);
+            transition: opacity 1.5s ease, transform 1.5s ease;
+            line-height: 1.6;
+        }
+
+        #prayer-text.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        #prayer-text.hide {
+            opacity: 0;
+            transform: translateY(-15px);
+        }
+
+        .prayer-final-title {
+            font-size: clamp(32px, 8vw, 48px);
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(255, 105, 180, 0.6);
+            margin-bottom: 12px;
+            font-style: italic;
+        }
+
+        .prayer-subtitle {
+            font-family: 'Quicksand', sans-serif;
+            font-size: clamp(14px, 4vw, 18px);
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 3px;
+            text-transform: uppercase;
+        }
+
+        /* =========================================
+           SCENE 4: BUKU KENANGAN VIRTUAL
+           ========================================= */
+        #scene4 {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #0f0f13; 
+            font-family: "Quicksand", sans-serif;
+            perspective: 1500px; 
+            overflow: hidden;
+        }
+
+        #scene4::before {
+            content: "";
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            animation: s4-bgMove 1s infinite alternate ease-in-out; 
+            z-index: -2;
+        }
+
+        @keyframes s4-bgMove {
+            0% { transform: translate(-10%, -10%) scale(1); }
+            100% { transform: translate(-20%, -20%) scale(1.2); }
+        }
+
+        .snow {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            top: 0;
+            left: 0;
+            z-index: -1;
+        }
+
+        .snow span {
+            position: absolute;
+            top: -10px;
+            border-radius: 50%;
+            background: white;
+            /* Dihapus filter: blur(1px) untuk mencegah HP Lag */
+            opacity: 0.6;
+            animation: snowFall linear infinite;
+        }
+
+        @keyframes snowFall {
+            0% { transform: translateY(-10px); opacity: 0; }
+            10% { opacity: 1; }
+            100% { transform: translateY(100vh); opacity: 0; }
+        }
+
+        .book {
+            width: 320px;
+            height: 450px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 0.8s cubic-bezier(0.645, 0.045, 0.355, 1);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .page {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            transform-origin: left center;
+            transform-style: preserve-3d;
+            transition: transform 1s cubic-bezier(0.645, 0.045, 0.355, 1);
+            cursor: pointer;
+        }
+
+        .front, .back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            overflow: hidden;
+            background: #fff;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            box-shadow: inset 4px 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .back {
+            transform: rotateY(180deg);
+            box-shadow: inset -4px 0 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .cover {
+            background: #B5406c; 
+            color: #fffafc;
+
+            text-shadow:
+            0 0 8px rgba(255,255,255,0.35),
+            0 0 18px rgba(255,0,127,0.25);
+            text-align: center;
+            padding: 20px;
+        }
+
+        .cover h1 {
+            font-family: 'Georgia', serif;
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+
+        .cover p {
+            font-family: 'Georgia', serif;
+            font-size: 14px;
+            letter-spacing: 1.5px;
+        }
+
+        .text-page {
+            padding: 40px;
+            text-align: center;
+            background: #fcfcfc;
+            color: #000000;
+            font-size: 15px;
+            line-height: 1.8;
+            border: 1px solid #eee;
+            font-family: "Quicksand", sans-serif;
+            font-weight: 600;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+
+        .photo-wrapper {
+            width: 90%;
+            height: 90%;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.15);
+            position: relative;
+            background: #000;
+        }
+
+        .photo-wrapper img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.4s ease;
+        }
+
+        .photo-wrapper:hover img {
+            transform: scale(1.08);
+        }
+
+        #page1  { z-index: 10; }
+        #page2  { z-index: 9; }
+        #page3  { z-index: 8; }
+        #page4  { z-index: 7; }
+        #page5  { z-index: 6; }
+        #page6  { z-index: 5; }
+        #page7  { z-index: 4; }
+        #page8  { z-index: 3; }
+        #page9  { z-index: 2; }
+        #page10 { z-index: 1; }
+        .flipped { transform: rotateY(-180deg); }
+
+        .instruction {
+            position: absolute;
+            bottom: 40px;
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 13px;
+            letter-spacing: 1px;
+            animation: s4-pulse 2s infinite;
+        }
+
+        @keyframes s4-pulse {
+            0%, 100% { opacity: 0.4; }
+            50% { opacity: 1; }
+        }
+
+        /* =========================================
+           SCENE 5: ANIMASI FOTO HATI
+           ========================================= */
+        #scene5 {
+            background-color: #07080c; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .glow-bg {
+    position: absolute;
+    width: 650px;
+    height: 650px;
+
+    background:
+        radial-gradient(circle,
+            rgba(255, 70, 150, 0.35) 0%,
+            rgba(255, 120, 200, 0.18) 30%,
+            rgba(120, 180, 255, 0.10) 55%,
+            transparent 75%);
+
+    border-radius: 50%;
+    z-index: 1;
+
+    filter: blur(20px);
+
+    animation:
+        glowPulse 5s ease-in-out infinite alternate,
+        glowRotate 18s linear infinite;
+}
+        
+        #s5-heartCanvas {
+            position: absolute;
+            z-index: 2;
+        }
+
+        
+    </style>
+</head>
+<body>
+
+    <audio id="bgm" src="until-i-found-you.mp3" loop></audio>
+    
+    
+
+    <div id="scene1" class="scene active">
+        <div class="screen-flash" id="flash"></div>
+        <div class="game-container" id="gameContainer">
+            <div class="ambient-glow"></div>
+            <h2 class="instruction-text" id="instructionText">Scan to unlock</h2>
+            <div class="interaction-area" id="interactionArea">
+                <svg class="progress-svg" viewBox="0 0 140 140">
+                    <defs>
+                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#ff007f" />
+                            <stop offset="100%" stop-color="#8a2be2" />
+                        </linearGradient>
+                    </defs>
+                    <circle class="progress-bg" cx="70" cy="70" r="60"></circle>
+                    <circle class="progress-bar" id="progressBar" cx="70" cy="70" r="60"></circle>
+                </svg>
+                <div class="fingerprint-btn" id="holdButton">
+                    <svg class="fingerprint-icon" viewBox="0 0 24 24">
+                        <path d="M17.81 4.47c..."></path>
+                    </svg>
+                    <div class="scan-line"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="scene2" class="scene">
+        <canvas id="s2-fireworks"></canvas>
+        <canvas id="s2-text"></canvas>
+    </div>
+
+    <div id="scene3" class="scene">
+        <canvas id="bg-particles"></canvas>
+        <div id="s3-top-area">
+            <div id="s3-bday-text">
+                <p style="color:var(--text-d); letter-spacing:2px; font-size:12px;">HAPPY BIRTHDAY</p>
+                <p class="bday-name">Khalista Halwa Syatifa</p>
+                <p class="bday-age">18</p>
+            </div>
+        </div>
+        <div id="s3-cake-area">
+            <div id="cake-stage">
+                <div id="plate" class="cp"></div>
+                <div id="layer-1" class="cp cake-layer"></div>
+                <div id="cream-1" class="cp cream-layer"></div>
+                <div id="layer-2" class="cp cake-layer"></div>
+                <div id="cream-2" class="cp cream-layer"></div>
+                <div id="layer-3" class="cp cake-layer"></div>
+                <div id="frosting-wrap" class="cp">
+                    <div id="frosting-surface"></div>
+                    <div id="drips-row"></div>
+                </div>
+                <div id="candles-row" class="cp"></div>
+            </div>
+        </div>
+        <div id="s3-bottom-area">
+            <p id="slabel">Mempersiapkan...</p>
+            <p id="blow-hint" class="hint hidden">Tap lilin untuk meniupnya 🌬️</p>
+        </div>
+    </div>
+
+    <div id="scenePrayer" class="scene">
+        <canvas id="prayer-particles"></canvas>
+        <div class="prayer-content">
+            <div id="prayer-text"></div>
+        </div>
+    </div>
+
+    <div id="scene4" class="scene">
+        <div class="snow"></div>
+        <div class="book" id="myBook">
+          <div class="page" id="page1" onclick="flip(1)">
+            <div class="front cover">
+              <h1>A Story Preserved</h1><p>Made from small moments that meant everything.</p>
+            </div>
+            <div class="back text-page">
+              <p>“There are many things in life that time will slowly erase.
+But some moments always find a way to stay in our hearts.
+This book was created not only to look back at the past, but to remind you that every step you have taken shaped who you are today.
+And no matter how far your journey goes, never forget how valuable the process has been.”</p>
+              <br /><p style="font-size: 12px; color: #888">(Klik sisi kanan untuk lanjut)</p>
+            </div>
+          </div>
+          <div class="page" id="page2" onclick="flip(2)">
+            <div class="front"><div class="photo-wrapper"><img src="img/foto1.jpg" alt="Foto 1" /></div></div>
+            <div class="back"><div class="photo-wrapper"><img src="img/foto2.jpg" alt="Foto 2" /></div></div>
+          </div>
+          <div class="page" id="page3" onclick="flip(3)">
+            <div class="front"><div class="photo-wrapper"><img src="img/foto3.jpg" alt="Foto 3" /></div></div>
+            <div class="back"><div class="photo-wrapper"><img src="img/foto4.jpg" alt="Foto 4" /></div></div>
+          </div>
+          <div class="page" id="page4" onclick="flip(4)">
+            <div class="front"><div class="photo-wrapper"><img src="img/foto5.jpg" alt="Foto 5" /></div></div>
+            <div class="back"><div class="photo-wrapper"><img src="img/foto6.jpg" alt="Foto 6" /></div></div>
+          </div>
+          <div class="page" id="page5" onclick="flip(5)">
+            <div class="front"><div class="photo-wrapper"><img src="img/foto7.jpg" alt="Foto 7" /></div></div>
+            <div class="back"><div class="photo-wrapper"><img src="img/foto8.jpg" alt="Foto 8" /></div></div>
+          </div>
+          <div class="page" id="page6" onclick="flip(6)">
+            <div class="front"><div class="photo-wrapper"><img src="img/foto9.jpg" alt="Foto 9" /></div></div>
+            <div class="back"><div class="photo-wrapper"><img src="img/foto10.jpg" alt="Foto 10" /></div></div>
+          </div>
+          <div class="page" id="page7" onclick="flip(7)">
+            <div class="front"><div class="photo-wrapper"><img src="img/foto11.jpg" alt="Foto 11" /></div></div>
+            <div class="back"><div class="photo-wrapper"><img src="img/foto12.jpg" alt="Foto 12" /></div></div>
+          </div>
+          <div class="page" id="page8" onclick="flip(8)">
+            <div class="front"><div class="photo-wrapper"><img src="img/foto13.jpg" alt="Foto 13" /></div></div>
+            <div class="back"><div class="photo-wrapper"><img src="img/foto14.jpg" alt="Foto 14" /></div></div>
+          </div>
+          <div class="page" id="page9" onclick="flip(9)">
+            <div class="front"><div class="photo-wrapper"><img src="img/foto15.jpg" alt="Foto 15" /></div></div>
+            <div class="back"><div class="photo-wrapper"><img src="img/foto16.jpg" alt="Foto 16" /></div></div>
+          </div>
+          <div class="page" id="page10" onclick="flip(10)">
+            <div class="front text-page">
+              <p>“Life may not always go the way you hoped, but that does not mean your journey ends here.
+There will be new days, new dreams, and new reasons to smile.
+Keep believing in yourself, even when everything feels difficult.
+Because someone who keeps trying never truly loses.”</p>
+              <br /><p style="font-weight: 600">~🌷~</p>
+            </div>
+            <div class="back cover"><h1>“See You in the Next Story”</h1><p>Because memories never truly end.</p></div>
+          </div>
+        </div>
+        <div class="instruction">Klik pada halaman buku untuk membuka dan membalik</div>
+    </div>
+
+    <div id="scene5" class="scene">
+        <div class="glow-bg"></div>
+        <canvas id="s5-heartCanvas"></canvas>
+    </div>
+
+    <script>
+        // ==========================================
+        // AUDIO & TRANSITION MANAGER
+        // ==========================================
+        const audioToggleBtn = document.getElementById('audio-toggle');
+        const globalBgm = document.getElementById('bgm');
+
+       
+
+        function switchScene(hideId, showId, onCompleteFunc) {
+            const hideEl = document.getElementById(hideId);
+            const showEl = document.getElementById(showId);
+            hideEl.classList.remove('active');
+            setTimeout(() => {
+                showEl.classList.add('active');
+                if (onCompleteFunc) onCompleteFunc();
+            }, 2000); 
+        }
+
+        // ==========================================
+        // SCENE 1: FINGERPRINT
+        // ==========================================
+        function initFingerprint() {
+            const HOLD_DURATION = 2500;
+            const SVG_RADIUS = 60;
+            const CIRCUMFERENCE = 2 * Math.PI * SVG_RADIUS;
+
+            const button = document.getElementById('holdButton');
+            const interactionArea = document.getElementById('interactionArea');
+            const progressBar = document.getElementById('progressBar');
+            const instructionText = document.getElementById('instructionText');
+            const gameContainer = document.getElementById('gameContainer');
+            const flash = document.getElementById('flash');
+
+            let startTime = 0;
+            let isHolding = false;
+            let isUnlocked = false;
+
+            progressBar.style.strokeDasharray = CIRCUMFERENCE;
+            progressBar.style.strokeDashoffset = CIRCUMFERENCE;
+
+            function easeInOutCubic(t) {
+                return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+            }
+
+            function startHold(e) {
+                if (isUnlocked) return;
+                if (e.type === "touchstart") e.preventDefault();
+
+                // Start Audio pada interaksi pertama
+                globalBgm.volume = 0.4;
+                globalBgm.play().then(() => {
+                    audioToggleBtn.classList.remove('hidden');
+                }).catch(() => console.log("Audio diblok"));
+
+                isHolding = true;
+                startTime = performance.now();
+                button.classList.add('active');
+                interactionArea.classList.remove('shake');
+                if (navigator.vibrate) navigator.vibrate(20);
+
+                progressBar.style.transition = 'none';
+                requestAnimationFrame(updateProgress);
+            }
+
+            function updateProgress(currentTime) {
+                if (!isHolding || isUnlocked) return;
+
+                let elapsed = currentTime - startTime;
+                let progress = Math.min(elapsed / HOLD_DURATION, 1);
+                let eased = easeInOutCubic(progress);
+
+                progressBar.style.strokeDashoffset = CIRCUMFERENCE * (1 - eased);
+
+                if (progress >= 1) triggerSuccess();
+                else requestAnimationFrame(updateProgress);
+            }
+
+            function endHold() {
+                if (!isHolding || isUnlocked) return;
+                isHolding = false;
+                button.classList.remove('active');
+
+                let offset = parseFloat(progressBar.style.strokeDashoffset);
+                if (offset > 0 && offset < CIRCUMFERENCE) triggerFail();
+            }
+
+            function triggerFail() {
+                interactionArea.classList.add('shake');
+                if (navigator.vibrate) navigator.vibrate([30, 50, 30]);
+                progressBar.style.transition = 'stroke-dashoffset 0.5s ease';
+                progressBar.style.strokeDashoffset = CIRCUMFERENCE;
+                setTimeout(() => interactionArea.classList.remove('shake'), 400);
+            }
+
+            function triggerSuccess() {
+                isUnlocked = true;
+                button.classList.remove('active');
+                if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
+                progressBar.style.strokeDashoffset = 0;
+
+                flash.style.opacity = '0.8';
+                setTimeout(() => flash.style.opacity = '0', 150);
+                instructionText.style.opacity = '0';
+
+                setTimeout(() => {
+                    instructionText.innerHTML = "Identity Verified ";
+                    instructionText.style.opacity = '1';
+                    instructionText.style.textShadow = '0 0 20px rgba(138,43,226,0.8)';
+                }, 400);
+
+                setTimeout(() => {
+                    gameContainer.style.opacity = '0';
+                    setTimeout(() => switchScene('scene1', 'scene2', startScene2), 1200);
+                }, 1500);
+            }
+
+            button.addEventListener('mousedown', startHold);
+            window.addEventListener('mouseup', endHold);
+            button.addEventListener('touchstart', startHold, { passive: false });
+            window.addEventListener('touchend', endHold);
+            window.addEventListener('touchcancel', endHold);
+        }
+
+        // ==========================================
+        // SCENE 2: FIREWORKS
+        // ==========================================
+        let s2Running = false;
+        let fCtx, tCtx, wS2, hS2, fireworks = [], sparks = [], textParticles = [];
+        let startTimeS2, phaseS2 = 0;
+
+        function startScene2() {
+            s2Running = true;
+            const fCanvas = document.getElementById('s2-fireworks');
+            const tCanvas = document.getElementById('s2-text');
+            fCtx = fCanvas.getContext('2d'); tCtx = tCanvas.getContext('2d');
+
+            function resize() {
+                wS2 = window.innerWidth; hS2 = window.innerHeight;
+                fCanvas.width = wS2; fCanvas.height = hS2;
+                tCanvas.width = wS2; tCanvas.height = hS2;
+            }
+            window.addEventListener('resize', resize);
+            resize();
+
+            startTimeS2 = Date.now();
+            loopS2();
+        }
+
+        function rand(min, max) { return Math.random() * (max - min) + min; }
+
+        function drawFireworks() {
+            fCtx.fillStyle = 'rgba(5, 0, 8, 0.16)'; fCtx.fillRect(0, 0, wS2, hS2);
+            for (let i = fireworks.length - 1; i >= 0; i--) {
+                const fw = fireworks[i]; fw.y += fw.vy;
+                fCtx.beginPath(); fCtx.fillStyle = 'rgba(255, 105, 180, 0.9)'; fCtx.arc(fw.x, fw.y, 1.8, 0, Math.PI * 2); fCtx.fill();
+                
+                if (!fw.exploded && fw.y >= fw.burstY) {
+                    fw.exploded = true;
+                    const colors = ['#ff66cc', '#ff99dd', '#ff4da6', '#ffb3e6', '#ff80bf'];
+                    for (let j = 0; j < fw.burstCount; j++) {
+                        const angle = Math.random() * Math.PI * 2;
+                        const speed = rand(1.5, 6.5);
+                        sparks.push({
+                            x: fw.x, y: fw.y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed,
+                            gravity: rand(0.03, 0.08), friction: 0.985, alpha: 1, decay: rand(0.012, 0.022),
+                            size: rand(1.2, 2.6), color: colors[Math.floor(Math.random() * colors.length)]
+                        });
+                    }
+                    fireworks.splice(i, 1);
+                }
+            }
+
+            for (let i = sparks.length - 1; i >= 0; i--) {
+                const s = sparks[i];
+                s.vx *= s.friction; s.vy *= s.friction; s.vy += s.gravity;
+                s.x += s.vx; s.y += s.vy; s.alpha -= s.decay;
+                if (s.alpha <= 0) { sparks.splice(i, 1); continue; }
+                fCtx.save(); fCtx.globalAlpha = s.alpha; fCtx.fillStyle = s.color;
+                fCtx.beginPath(); fCtx.arc(s.x, s.y, s.size, 0, Math.PI * 2); fCtx.fill(); fCtx.restore();
+            }
+            // Optimasi: Kurangi kemungkinan fireworks agar HP tidak lag
+            if (Math.random() < 0.04) fireworks.push({ x: rand(wS2 * 0.1, wS2 * 0.9), y: rand(-hS2 * 0.2, hS2 * 0.2), vy: rand(1.2, 2.8), burstY: rand(hS2 * 0.18, hS2 * 0.75), burstCount: Math.floor(rand(15, 25)), exploded: false });
+        }
+
+        function fitText(text, targetWidth) {
+            tCtx.font = 'bold 10px "Courier New"'; return (targetWidth / tCtx.measureText(text).width) * 10;
+        }
+
+        function initParticles(lines, fontSizes, delays) {
+            textParticles = [];
+            const off = document.createElement('canvas'); const oCtx = off.getContext('2d');
+            off.width = wS2; off.height = hS2;
+            oCtx.fillStyle = 'white'; oCtx.textAlign = 'center'; oCtx.textBaseline = 'middle';
+
+            let totalH = 0; lines.forEach((l, i) => totalH += fontSizes[i] * 1.25);
+            let cY = (hS2 - totalH) / 2; let bounds = [];
+
+            lines.forEach((l, i) => {
+                oCtx.font = `900 ${fontSizes[i]}px "Courier New"`; oCtx.fillText(l, wS2 / 2, cY + fontSizes[i] / 2);
+                bounds.push({ minY: cY - 10, maxY: cY + fontSizes[i] * 1.25 + 10, delay: delays ? delays[i] : 0 });
+                cY += fontSizes[i] * 1.25;
+            });
+
+            const data = oCtx.getImageData(0, 0, wS2, hS2).data;
+            const step = wS2 < 600 ? 4 : 5; // Optimasi: step dibesarkan agar partikel lebih sedikit (anti lag)
+
+            for (let y = 0; y < hS2; y += step) {
+                for (let x = 0; x < wS2; x += step) {
+                    if (data[(y * wS2 + x) * 4 + 3] > 128) {
+                        let delay = 0;
+                        for (let b of bounds) if (y >= b.minY && y <= b.maxY) delay = b.delay;
+                        textParticles.push({
+                            x: x < wS2 / 2 ? rand(-500, -50) : wS2 + rand(50, 500), y: rand(-100, hS2 + 100), tx: x, ty: y,
+                            vx: Math.cos(Math.random()*Math.PI*2) * (Math.random()*10), vy: Math.sin(Math.random()*Math.PI*2) * (Math.random()*10),
+                            alpha: 0, delay: delay, active: false
+                        });
+                    }
+                }
+            }
+        }
+
+        let s2Transitioned = false;
+
+        function animateText() {
+            tCtx.clearRect(0, 0, wS2, hS2);
+            let elapsed = Date.now() - startTimeS2;
+
+            if (elapsed < 4000) { 
+                if (phaseS2 !== 1) { phaseS2 = 1; initParticles(['3'], [fitText('3', wS2*0.28)], [0]); }
+            } else if (elapsed < 7000) { 
+                if (phaseS2 !== 2) { phaseS2 = 2; initParticles(['2'], [fitText('2', wS2*0.28)], [0]); }
+            } else if (elapsed < 10000) { 
+                if (phaseS2 !== 3) { phaseS2 = 3; initParticles(['1'], [fitText('1', wS2*0.28)], [0]); }
+            } else if (elapsed < 13000) { 
+                phaseS2 = 4;
+            } else {
+                if (phaseS2 !== 5) {
+                    phaseS2 = 5;
+                    initParticles(['HAPPY', 'BIRTHDAY', 'AWAA'], [fitText('HAPPY', wS2*0.5), fitText('BIRTHDAY', wS2*0.7), fitText('AWAA', wS2*0.42)], [13000, 14500, 15500]);
+                }
+            }
+
+            for (let p of textParticles) {
+                let dx = p.tx - p.x;
+                let dy = p.ty - p.y;
+                
+                if (phaseS2 === 4) {
+                    p.x += p.vx; p.y += p.vy; p.alpha -= 0.02; if(p.alpha<0) p.alpha=0;
+                    p.x += dx * 0.03; p.y += dy * 0.03; // Fix bug koordinat
+                } else if (phaseS2 === 5) {
+                    if (elapsed > p.delay) p.active = true;
+                    if (p.active) { p.x += (p.tx - p.x)*0.06; p.y += (p.ty - p.y)*0.06; p.alpha += 0.03; if(p.alpha>1) p.alpha=1; }
+                } else {
+                    let dist = Math.sqrt(dx*dx + dy*dy);
+                    let speed = Math.max(0.02, Math.min(0.08, dist / 200));
+                    p.x += dx * speed; p.y += dy * speed;
+                    p.alpha += 0.03; if (p.alpha > 1) p.alpha = 1;
+                }
+
+                if (p.alpha > 0 && (phaseS2 !== 5 || p.active)) {
+                    tCtx.fillStyle = phaseS2 === 4 ? `rgba(255,105,180,${p.alpha})` : `rgba(255,179,218,${p.alpha})`; 
+                    tCtx.fillRect(p.x, p.y, wS2<600?1.5:2, wS2<600?1.5:2);
+                }
+            }
+
+            if (elapsed > 20000 && !s2Transitioned) {
+                s2Transitioned = true; switchScene('scene2', 'scene3', startScene3);
+            }
+        }
+
+        function loopS2() {
+            if (!s2Running) return; 
+            drawFireworks(); animateText(); requestAnimationFrame(loopS2);
+        }
+
+        // ==========================================
+        // SCENE 3: CAKE
+        // ==========================================
+        let buildStep = 0, candleOut = 0; const s3Candles = 3;
+        const STEPS = [
+            { label: 'Piring Disiapkan', run: () => reveal('plate', 'dropDown 0.7s forwards') },
+            { label: 'Lapisan Pertama', run: () => reveal('layer-1', 'dropDown 0.7s forwards') },
+            { label: 'Krim Lembut', run: () => reveal('cream-1', 'spreadX 0.5s forwards') },
+            { label: 'Lapisan Kedua', run: () => reveal('layer-2', 'dropDown 0.7s forwards') },
+            { label: 'Lebih Banyak Krim', run: () => reveal('cream-2', 'spreadX 0.5s forwards') },
+            { label: 'Lapisan Puncak', run: () => reveal('layer-3', 'dropDown 0.7s forwards') },
+            { label: 'Frosting Stroberi', run: () => { reveal('frosting-wrap', 'frostIn 0.6s forwards'); setTimeout(() => document.querySelectorAll('.drip').forEach(d => d.classList.add('go')), 400); }},
+            { label: 'Dan Lilinnya...', run: () => { document.getElementById('candles-row').style.opacity = '1'; document.querySelectorAll('.candle').forEach((c, i) => { setTimeout(() => { c.classList.add('up'); setTimeout(() => c.querySelector('.flame').classList.add('lit'), 300); }, i * 200); }); setTimeout(finishBuild, 1500); }}
+        ];
+
+        function startScene3() {
+            s2Running = false; 
+            const dripsRow = document.getElementById('drips-row');
+            [20, 27, 18, 30, 15].forEach(h => { const d = document.createElement('div'); d.className = 'drip'; d.style.cssText = `width:12px; --dh:${h}px;`; dripsRow.appendChild(d); });
+            const candleRow = document.getElementById('candles-row');
+            for (let i = 0; i < s3Candles; i++) {
+                const wrap = document.createElement('div'); wrap.className = 'cw';
+                wrap.innerHTML = `<div class="candle"><div class="candle-wick"></div><div class="flame"></div></div>`;
+                wrap.onclick = () => blowCandle(wrap.querySelector('.flame'));
+                candleRow.appendChild(wrap);
+            }
+            setupS3Bg(); setTimeout(nextStep, 1000); 
+        }
+
+        function reveal(id, anim) { const el = document.getElementById(id); el.style.opacity = '1'; el.style.animation = anim; }
+
+        function nextStep() {
+            if (buildStep >= STEPS.length) return;
+            const step = STEPS[buildStep]; const lbl = document.getElementById('slabel');
+            lbl.style.opacity = '0'; setTimeout(() => { lbl.textContent = step.label; lbl.style.opacity = '1'; }, 200);
+            step.run(); buildStep++; if (buildStep < STEPS.length) setTimeout(nextStep, 1500);
+        }
+
+        function finishBuild() {
+            document.getElementById('slabel').classList.add('hidden');
+            const text = document.getElementById('s3-bday-text'); text.style.opacity = '1'; text.style.animation = 'fadeUp 1s ease forwards';
+            document.getElementById('blow-hint').classList.remove('hidden'); document.getElementById('cake-stage').classList.add('pulse');
+        }
+
+        function blowCandle(flame) {
+            if (flame.classList.contains('out')) return;
+            const rect = flame.getBoundingClientRect(); createSparkle(rect.left, rect.top);
+            flame.classList.add('out'); candleOut++;
+            if (candleOut >= s3Candles) {
+                const hint = document.getElementById('blow-hint'); hint.textContent = "Make a wish! ✨"; hint.style.animation = "none"; hint.style.color = "var(--gold-l)";
+                launchConfetti();
+                setTimeout(() => { switchScene('scene3', 'scenePrayer', startScenePrayer); }, 5000);
+            }
+        }
+
+        function createSparkle(x, y) {
+            const s = document.createElement('div'); s.style.position = 'absolute'; s.style.left = x + 'px'; s.style.top = y + 'px'; s.style.width = '6px'; s.style.height = '6px'; s.style.background = 'white'; s.style.borderRadius = '50%'; s.style.pointerEvents = 'none'; s.style.boxShadow = '0 0 10px gold'; s.style.zIndex = '100';
+            document.body.appendChild(s); s.animate([{ transform: 'scale(1)', opacity: 1 }, { transform: 'scale(0)', opacity: 0 }], { duration: 600 }); setTimeout(() => s.remove(), 600);
+        }
+
+        function launchConfetti() {
+            // Optimasi: Dari 120 ke 60 agar tidak membebani memori HP
+            for (let i = 0; i < 60; i++) {
+                const c = document.createElement('div'); c.style.position = 'fixed'; c.style.width = '6px'; c.style.height = '6px'; c.style.background = `hsl(${Math.random()*360},100%,60%)`; c.style.top = '50%'; c.style.left = '50%'; c.style.pointerEvents = 'none'; c.style.zIndex = '999';
+                document.body.appendChild(c); const angle = Math.random() * Math.PI * 2; const dist = Math.random() * 300 + 100;
+                c.animate([{ transform: 'translate(0,0)', opacity: 1 }, { transform: `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px)`, opacity: 0 }], { duration: 1500, easing: 'ease-out' }); setTimeout(() => c.remove(), 1500);
+            }
+        }
+
+        function setupS3Bg() {
+            const canvas = document.getElementById('bg-particles');
+            const ctx = canvas.getContext('2d');
+            let particles = [];
+
+            function resize() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                particles = Array.from({ length: 30 }, () => ({ // Optimasi: dari 50 ke 30
+                    x: Math.random() * canvas.width, y: Math.random() * canvas.height,
+                    r: Math.random() * 1.5 + 0.5, speed: Math.random() * 0.3 + 0.1, alpha: Math.random() * 0.4
+                }));
+            }
+            resize(); window.addEventListener('resize', resize);
+
+            function animate() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                particles.forEach(p => {
+                    p.y -= p.speed; if (p.y < 0) p.y = canvas.height;
+                    ctx.globalAlpha = p.alpha; ctx.fillStyle = "#ffffff";
+                    ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); ctx.fill();
+                });
+                if(!s2Running) requestAnimationFrame(animate); // Hentikan kalau scene ganti
+            }
+            animate();
+        }
+
+        // ==========================================
+        // SCENE PRAYER: CINEMATIC MESSAGES
+        // ==========================================
+        function startScenePrayer() {
+            const canvas = document.getElementById('prayer-particles');
+            const ctx = canvas.getContext('2d');
+            let pParticles = [];
+            
+            function resizeP() {
+                canvas.width = window.innerWidth;
+                canvas.height = window.innerHeight;
+                pParticles = Array.from({ length: 35 }, () => ({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    r: Math.random() * 2 + 0.5,
+                    speedY: Math.random() * 0.3 + 0.1,
+                    speedX: (Math.random() - 0.5) * 0.2,
+                    alpha: Math.random() * 0.5 + 0.1
+                }));
+            }
+            window.addEventListener('resize', resizeP);
+            resizeP();
+
+            let pAnimRunning = true;
+            function animateP() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                pParticles.forEach(p => {
+                    p.y -= p.speedY;
+                    p.x += p.speedX;
+                    if (p.y < 0) p.y = canvas.height;
+                    if (p.x < 0) p.x = canvas.width;
+                    if (p.x > canvas.width) p.x = 0;
+                    ctx.globalAlpha = p.alpha;
+                    ctx.fillStyle = "rgba(255, 182, 193, 0.7)"; 
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+                if(pAnimRunning) requestAnimationFrame(animateP);
+            }
+            animateP();
+
+            const textEl = document.getElementById('prayer-text');
+            const messages = [
+            "Before we continue...",
+            "There's something I want to pray for you.",
+            "May your future be brighter than every fear you have today.",
+            "May every step you take slowly turn into the life you once dreamed about.",
+            "May success walk beside you, but peace stay inside your heart.",
+            "May every version of your future self be proud of who you are now.",
+            "And may life always find a way to surprise you in the best way.",
+            "<div class='prayer-final-title'>Happy 18th Birthday </div>"
+        ];
+
+            let msgIndex = 0;
+            
+            function showNextMessage() {
+                if (msgIndex >= messages.length) {
+                    pAnimRunning = false; // Stop particles to save memory
+                    switchScene('scenePrayer', 'scene4', startScene4); // Auto-transition to book
+                    return;
+                }
+                
+                textEl.innerHTML = messages[msgIndex];
+                textEl.className = 'show';
+                
+                let holdTime = (msgIndex === messages.length - 1) ? 8500 : 5000;
+                
+                setTimeout(() => {
+                    if(msgIndex < messages.length - 1) {
+                        textEl.className = 'hide';
+                        setTimeout(() => {
+                            msgIndex++;
+                            showNextMessage();
+                        }, 1500); 
+                    } else {
+                        msgIndex++;
+                        showNextMessage(); 
+                    }
+                }, holdTime);
+            }
+            
+            setTimeout(showNextMessage, 1000); 
+        }
+
+        // ==========================================
+        // SCENE 4: BUKU
+        // ==========================================
+        const totalPages = 10;
+        const book = document.getElementById("myBook");
+        let transitionedToScene5 = false;
+
+        function startScene4() {
+            const snowContainer = document.querySelector('.snow');
+            // Optimasi: Dari 60 ke 30 partikel salju untuk HP lag
+            for (let i = 0; i < 30; i++) {
+                let snowflake = document.createElement('span');
+                let size = Math.random() * 4 + 1;
+                snowflake.style.width = size + 'px'; snowflake.style.height = size + 'px';
+                snowflake.style.left = Math.random() * 100 + '%';
+                snowflake.style.animationDuration = (Math.random() * 6 + 6) + 's';
+                snowflake.style.animationDelay = Math.random() * 5 + 's';
+                snowflake.style.opacity = Math.random() * 0.6;
+                snowContainer.appendChild(snowflake);
+            }
+        }
+
+        function flip(pageNum) {
+            const page = document.getElementById(`page${pageNum}`);
+
+            if (page.classList.contains("flipped")) {
+                page.classList.remove("flipped");
+                setTimeout(() => { page.style.zIndex = totalPages - pageNum + 1; }, 500);
+                if (pageNum === 1) book.style.transform = "translateX(0)";
+            } else {
+                page.classList.add("flipped");
+                setTimeout(() => { page.style.zIndex = pageNum; }, 500);
+                if (pageNum === 1) book.style.transform = "translateX(160px)";
+                
+                if (pageNum === totalPages && !transitionedToScene5) {
+                    transitionedToScene5 = true;
+                    setTimeout(() => { switchScene('scene4', 'scene5', startScene5); }, 5000); 
+                }
+            }
+        }
+
+        // ==========================================
+        // SCENE 5: HATI
+        // ==========================================
+        const s5_canvas = document.getElementById('s5-heartCanvas');
+        const s5_ctx = s5_canvas.getContext('2d');
+        let s5_width, s5_height, s5_cx, s5_cy, s5_scale;
+        let s5_pathPoints = [], s5_imagesToDraw = [], s5_particles = [];
+        let s5_currentPathIndex = 0, s5_isAnimating = false, s5_pulseTime = 0;
+        let s5_loadedImages = [];
+
+        const s5_photoSources = [
+            'img/foto1.jpg', 'img/foto2.jpg', 'img/foto3.jpg', 'img/foto4.jpg', 'img/foto5.jpg',
+            'img/foto6.jpg', 'img/foto7.jpg', 'img/foto8.jpg', 'img/foto9.jpg', 'img/foto10.jpg', 
+            'img/foto11.jpg', 'img/foto12.jpg', 'img/foto13.jpg', 'img/foto14.jpg', 'img/foto15.jpg',
+            'img/foto16.jpg'
+        ];
+        const s5_particleColors = ['#ffffff', '#ff9a44', '#ff3b7c', '#66fcf1'];
+
+        function s5_resize() {
+            s5_width = s5_canvas.width = window.innerWidth;
+            s5_height = s5_canvas.height = window.innerHeight;
+            s5_cx = s5_width / 2;
+            s5_cy = s5_height / 2 - 20; 
+            s5_scale = Math.min(s5_width, s5_height) / 45; 
+            if(s5_isAnimating) s5_generateHeartPath();
+        }
+
+        function s5_loadImages(callback) {
+            let loadedCount = 0;
+            s5_photoSources.forEach(src => {
+                let img = new Image();
+                img.src = src;
+                img.onload = () => { loadedCount++; if (loadedCount === s5_photoSources.length) callback(); };
+                img.onerror = () => { loadedCount++; if (loadedCount === s5_photoSources.length) callback(); }
+                s5_loadedImages.push(img);
+            });
+        }
+
+        function s5_generateHeartPath() {
+            s5_pathPoints = [];
+            for (let t = 0; t <= Math.PI * 2; t += 0.015) {
+                let x = -16 * Math.pow(Math.sin(t), 3);
+                let y = -(13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t));
+                s5_pathPoints.push({ x: s5_cx + x * s5_scale, y: s5_cy + y * s5_scale });
+            }
+        }
+
+        function s5_drawPhoto(x, y, angle, img, pulseScale) {
+            s5_ctx.save();
+            s5_ctx.translate(x, y);
+            s5_ctx.scale(pulseScale, pulseScale); 
+            s5_ctx.rotate(angle + Math.PI / 2);
+
+            let size = 38; 
+            s5_ctx.shadowBlur = 18;
+            s5_ctx.strokeStyle = 'rgba(255,255,255,0.7)';
+s5_ctx.lineWidth = 1.5;
+            s5_ctx.fillStyle = '#ffffff';
+            s5_ctx.fillRect(-size/2 - 2, -size/2 - 2, size + 4, size + 4);
+            s5_ctx.shadowBlur = 0;
+            try { s5_ctx.drawImage(img, -size/2, -size/2, size, size); } catch(e){}
+            s5_ctx.restore();
+        }
+
+        function s5_animate() {
+            if (!s5_isAnimating) return;
+            s5_pulseTime += 0.03;
+            let pulseScale = 1 + Math.sin(s5_pulseTime) * 0.12; 
+
+            for (let img of s5_imagesToDraw) { s5_drawPhoto(img.x, img.y, img.angle, img.img, pulseScale); }
+
+            for (let i = s5_particles.length - 1; i >= 0; i--) {
+                let p = s5_particles[i];
+                p.x += p.vx; p.y += p.vy; p.life -= 0.02; 
+                if (p.life <= 0) { s5_particles.splice(i, 1); } 
+                else {
+                    s5_ctx.globalAlpha = p.life; s5_ctx.fillStyle = p.color;
+                    s5_ctx.beginPath(); s5_ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2); s5_ctx.fill();
+                    s5_ctx.globalAlpha = 1.0;
+                }
+            }
+
+            if (s5_currentPathIndex < s5_pathPoints.length) {
+                let pt = s5_pathPoints[s5_currentPathIndex];
+                let nextPt = s5_pathPoints[Math.min(s5_currentPathIndex + 1, s5_pathPoints.length - 1)];
+                let angle = Math.atan2(nextPt.y - pt.y, nextPt.x - pt.x);
+
+                if (s5_imagesToDraw.length === 0) {
+                    s5_imagesToDraw.push({ ...pt, angle: angle, img: s5_loadedImages[0] });
+                } else {
+                    let lastImg = s5_imagesToDraw[s5_imagesToDraw.length - 1];
+                    let dist = Math.hypot(pt.x - lastImg.x, pt.y - lastImg.y);
+                    if (dist > 22) { 
+                        let randomImg = s5_loadedImages[Math.floor(Math.random() * s5_loadedImages.length)];
+                        s5_imagesToDraw.push({ ...pt, angle: angle, img: randomImg });
+                    }
+                }
+
+                // Optimasi: Partikel hati dikurangi dari 4 ke 2 per titik
+                for (let i = 0; i < 2; i++) {
+                    s5_particles.push({
+                        x: pt.x + (Math.random() - 0.5) * 15, y: pt.y + (Math.random() - 0.5) * 15,
+                        vx: (Math.random() - 0.5) * 1.5, vy: (Math.random() - 0.5) * 1.5 - 0.5, 
+                        life: 1.0, radius: Math.random() * 2 + 0.5, color: s5_particleColors[Math.floor(Math.random() * s5_particleColors.length)]
+                    });
+                }
+                s5_currentPathIndex += 2; 
+            }
+            // PERBAIKAN FATAL: Menghapus requestAnimationFrame(s5_animate) di sini agar tidak terjadi double loop!
+        }
+
+        function startScene5() {
+            window.addEventListener('resize', s5_resize);
+            s5_resize();
+
+            // Optimasi: Dari 40 ke 25 partikel background
+            let bgParticles = Array.from({ length: 25 }, () => ({
+                x: Math.random() * window.innerWidth, y: Math.random() * window.innerHeight,
+                r: Math.random() * 2, speed: Math.random() * 0.5, alpha: Math.random() * 0.3
+            }));
+
+            function drawBG() {
+                s5_ctx.clearRect(0, 0, s5_width, s5_height);
+                bgParticles.forEach(p => {
+                    p.y -= p.speed; if (p.y < 0) p.y = s5_height;
+                    s5_ctx.globalAlpha = p.alpha; s5_ctx.fillStyle = "#ffffff";
+                    s5_ctx.beginPath(); s5_ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2); s5_ctx.fill();
+                });
+                s5_ctx.globalAlpha = 1;
+            }
+
+            s5_loadImages(() => {
+                s5_generateHeartPath();
+                s5_isAnimating = true;
+
+                // Loop tunggal penggerak Scene 5
+                function loop() {
+                    drawBG();      
+                    s5_animate();  
+                    requestAnimationFrame(loop);
+                }
+                loop();
+            });
+        }
+
+        // ==========================================
+        // INIT
+        // ==========================================
+        window.onload = () => { initFingerprint(); };
+
+    </script>
+</body>
+</html>
+
